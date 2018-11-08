@@ -1,0 +1,8 @@
+# Dont include test folder
+Test/
+
+# Dont include .asv files
+*.asv
+
+# Dont include .bmp files
+*.bmp
