@@ -7,6 +7,7 @@ img = imread('test.bmp');
 [index, bins, count] = quantizeAndCount(c, 512);
 
 cdq = dequantize(index, bins);
+cdq = round(2*cdq)/2;
 
 disp(max(c-cdq));
 
