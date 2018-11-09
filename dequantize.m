@@ -1,11 +1,17 @@
-function datadq = dequantize(data, bins)
+function datadq = dequantize(data, bins, isLossy)
 
-codebook = zeros(1,numel(bins)-1);
+offset = 180;
 
-for i=1:numel(bins)-1
-    codebook(i) = (bins(i)+bins(i+1))/2;
+if (isLossy)
+    codebook = zeros(1,numel(bins)-1);
+
+    for i=1:numel(bins)-1
+        codebook(i) = (bins(i)+bins(i+1))/2;
+    end
+
+    datadq = codebook(data);
+else
+    datadq = data-offset;
 end
-
-datadq = codebook(data);
 
 end

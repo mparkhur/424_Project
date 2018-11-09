@@ -2,19 +2,23 @@ function waveletTest
 
 img = imread('test.bmp');
 
-[c,s] = wavedec2(img,1,'haar');
+c = wavelet(img);
 
-[index, bins, count] = quantizeAndCount(c, 512);
+dim = size(c);
 
-cdq = dequantize(index, bins);
-cdq = round(2*cdq)/2;
+[index, bins, count] = quantizeAndCount(c, 128, true);
 
-disp(max(c-cdq));
+% Entropy Coding Here
 
-re_img = waverec2(cdq,s,'haar');
+cdq = dequantize(index, bins, true);
+
+cdq = reshape(cdq, dim);
+
+re_img = inverseWavelet(cdq);
 
 figure;
+subplot(1,2,1);
 imshow(uint8(img));
-figure;
+subplot(1,2,2);
 imshow(uint8(re_img));
 end
