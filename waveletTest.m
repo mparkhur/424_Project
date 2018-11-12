@@ -7,7 +7,7 @@ c = wavelet(img);
 dim = size(c);
 
 numBins = 64;
-isLossy = false;
+isLossy = true;
 
 [index, min, counts] = quantizeAndCount(c, numBins, isLossy);
 
@@ -16,7 +16,7 @@ save('histogram', 'counts');
 Nbits = encArith(index, 'histogram', 'enc_wave.bit');
 cdq = decArith('histogram', 'enc_wave.bit');
 
-cdq = dequantize(cdq, min, isLossy);
+cdq = dequantize(cdq, min, isLossy, numBins);
 
 cdq = reshape(cdq, dim);
 

@@ -17,7 +17,7 @@ packet = double(packet);
 blkt = wavelet(packet(:,:,1));
 blkv = reshape(blkt, 1, []);
 
-for j = 2:length(packet)-1
+for j = 2:size(packet,3)-1
     mv = motionEstimation(packet(:,:,j), packet(:,:,(j+1)), blockSize(1), blockSize(2), 16);
     mcpr = motionError(packet(:,:,j), packet(:,:,(j+1)) ,mv);
 
@@ -30,9 +30,11 @@ end
 
 [index, minmax, counts] = quantizeAndCount(blkv, qBins, isLossy);
 
+% Encode Here
+
 writeBitBlock(isLossy, counts, minmax, index, outfile);
 
-clearvars;
+clearvars -except outfile;
 
 [packetSize, blockSize, isLossy, numBins, bitsRead] = readHeader(outfile);
 
@@ -45,6 +47,8 @@ bWidth = blockSize(2);
 bSize = bHeight*bWidth*2;
 
 [counts, minmax, data, ~] = readBitBlock(outfile, isLossy, numBins, bitsRead);
+
+% Decode Here
 
 datadq = dequantize(data, minmax, isLossy, numBins);
 
@@ -62,6 +66,8 @@ for j = 2:length(frames)
     frames(:,:,j) = pred + resize(datadq(1:frameSize), height, width);
     datadq = datadq(frameSize:end);
 end
+
+writeFrames(frames, 'test.y');
 
 end
 
