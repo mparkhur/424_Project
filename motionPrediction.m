@@ -1,28 +1,24 @@
-function [mcpr,pred] = motionPrediction(prev,curr,mvx,mvy)
+function pred = motionPrediction(prev,mv)
 
-[height, width] = size(curr);
+mvx = mv(:,:,1);
+mvy = mv(:,:,2);
+
+[height, width] = size(prev);
 [x_length, y_length] = size(mvx);
 
 blkx = ceil(height/x_length);
 blky = ceil(width/y_length);
 
-mcpr = zeros(height, width);
-pred = mcpr;
+pred = zeros(height, width);
 
 for i = 1:x_length
     for j = 1:y_length
+        
+        px = x + mvx(i, j);
+        py = y + mvy(i, j);
+        prev_block = prev(px:(px+blkx-1), py:(py+blky-1));
        
-       x = (i-1)*blkx+1;
-       y = (j-1)*blky+1;
-       curr_block = curr(x:(x+blkx-1), y:(y+blky-1));
-       
-       px = x + mvx(i, j);
-       py = y + mvy(i, j);
-       prev_block = prev(px:(px+blkx-1), py:(py+blky-1));
-       
-       pred(x:(x+blkx-1), y:(y+blky-1)) = prev_block;
-       
-       mcpr(x:(x+blkx-1), y:(y+blky-1)) = curr_block - prev_block;
+        pred(x:(x+blkx-1), y:(y+blky-1)) = prev_block;
        
    end
 end

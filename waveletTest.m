@@ -6,14 +6,17 @@ c = wavelet(img);
 
 dim = size(c);
 
-[index, bins, counts] = quantizeAndCount(c, 256, true);
+numBins = 64;
+isLossy = false;
+
+[index, min, counts] = quantizeAndCount(c, numBins, isLossy);
 
 % Entropy Coding Here
 save('histogram', 'counts');
 Nbits = encArith(index, 'histogram', 'enc_wave.bit');
 cdq = decArith('histogram', 'enc_wave.bit');
 
-cdq = dequantize(cdq, bins, true);
+cdq = dequantize(cdq, min, isLossy);
 
 cdq = reshape(cdq, dim);
 

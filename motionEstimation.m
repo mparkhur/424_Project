@@ -1,4 +1,4 @@
-function [mvx,mvy] = motionEstimation(prev, curr, blkx, blky, search_range)
+function mv = motionEstimation(prev, curr, blkx, blky, search_range)
 
 [height, width] = size(curr);
 
@@ -42,5 +42,8 @@ for i = 1:x_length
        end
    end
 end
+
+mv(:,:,1) = mvx;
+mv(:,:,2) = mvy;
 
 end

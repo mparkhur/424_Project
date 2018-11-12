@@ -1,8 +1,4 @@
-function [index,bins,counts] = quantizeAndCount(data, numBins, isLossy)
-
-offset = 180;
-index = [];
-bins = [];
+function [index,minmax,counts] = quantizeAndCount(data, numBins, isLossy)
 
 data = reshape(data,1,[]);
 
@@ -11,23 +7,34 @@ if (isLossy)
         numBins=numBins+1;
     end
     
-    bins = linspace(-1,1,numBins+2)*(offset*2);
+    maxi = max(data);
+    
+    bins = linspace(-1,1,numBins+2)*(maxi+1);
+    bins = bins(bins~=0);
     index = quantiz(data, bins);
-    index = index+1;
+    
+    mi = min(index);
+    ma = max(index);
     
     counts = zeros(1,numel(bins)-1);
 
     for i=1:numel(index)
         counts(index(i)) = counts(index(i))+1;
     end
+    
+    minmax = maxi;
 else
-    index = data+offset;
+    mini = min(data);
+    
+    index = data - mini + 1;
 
-    counts = zeros(1,offset + 300);
+    counts = zeros(1,max(index));
 
     for i=1:numel(index)
         counts(index(i)) = counts(index(i))+1;
     end
+    
+    minmax = mini;
 end
 
 counts=counts+1;

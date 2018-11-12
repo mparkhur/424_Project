@@ -1,8 +1,15 @@
-function datadq = dequantize(data, bins, isLossy)
-
-offset = 180;
+function datadq = dequantize(data, var, isLossy, numBins)
 
 if (isLossy)
+    maxi = var;
+    
+    if (mod(numBins,2)==0)
+        numBins=numBins+1;
+    end
+    
+    bins = linspace(-1,1,numBins+2)*(maxi+1);
+    bins = bins(bins~=0);
+    
     codebook = zeros(1,numel(bins)-1);
 
     for i=1:numel(bins)-1
@@ -11,7 +18,9 @@ if (isLossy)
 
     datadq = codebook(data);
 else
-    datadq = data-offset;
+    mini = var;
+    
+    datadq = data - 1 + mini;
 end
 
 end

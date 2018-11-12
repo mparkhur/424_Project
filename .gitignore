@@ -6,3 +6,7 @@ Test/
 
 # Dont include .bmp files
 *.bmp
+
+# Dont include generated files
+*.bit
+*.mat
