@@ -1,4 +1,4 @@
-function writeBitBlock(isLossy, counts, minmax, data, outfile)
+function writeEncPacket(isLossy, counts, minmax, data, outfile)
 
 % | minmax | (optional - countsLength) | totalDataBits | DATA |
 

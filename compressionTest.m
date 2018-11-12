@@ -30,9 +30,7 @@ end
 
 [index, minmax, counts] = quantizeAndCount(blkv, qBins, isLossy);
 
-% Encode Here
-
-writeBitBlock(isLossy, counts, minmax, index, outfile);
+writeEncPacket(isLossy, counts, minmax, index, outfile);
 
 clearvars -except outfile;
 
@@ -46,9 +44,7 @@ bHeight = blockSize(1);
 bWidth = blockSize(2);
 bSize = bHeight*bWidth*2;
 
-[counts, minmax, data, ~] = readBitBlock(outfile, isLossy, numBins, bitsRead);
-
-% Decode Here
+[counts, minmax, data, ~] = readDecPacket(outfile, isLossy, numBins, bitsRead);
 
 datadq = dequantize(data, minmax, isLossy, numBins);
 

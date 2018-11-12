@@ -1,4 +1,4 @@
-function [counts, minmax, data, bitsRead] = readBitBlock(outfile, isLossy, numBins, bitOffset)
+function [counts, minmax, data, bitsRead] = readDecPacket(outfile, isLossy, numBins, bitOffset)
 
 % | minmax | (optional - countsLength) | totalDataBits | DATA |
 
