@@ -1,7 +1,10 @@
-function datadq = dequantize(data, var, isLossy, numBins)
+function datadq = dequantize(data, minmax, isLossy, numBins, isMV)
 
-if (isLossy)
-    maxi = var;
+if (isMV)
+    datadq = data-17;
+
+elseif (isLossy)
+    maxi = minmax;
     
     if (mod(numBins,2)==0)
         numBins=numBins+1;
@@ -18,7 +21,7 @@ if (isLossy)
 
     datadq = codebook(data);
 else
-    mini = var;
+    mini = minmax;
     
     datadq = data - 1 + mini;
 end
