@@ -6,13 +6,16 @@ mvy = mv(:,:,2);
 [height, width] = size(prev);
 [x_length, y_length] = size(mvx);
 
-blkx = ceil(height/x_length);
-blky = ceil(width/y_length);
+blkx = height/x_length;
+blky = width/y_length;
 
 pred = zeros(height, width);
 
 for i = 1:x_length
     for j = 1:y_length
+        
+        x = (i-1)*blkx+1;
+        y = (j-1)*blky+1;
         
         px = x + mvx(i, j);
         py = y + mvy(i, j);

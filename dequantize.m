@@ -23,4 +23,6 @@ else
     datadq = data - 1 + mini;
 end
 
+clearvars -except datadq;
+
 end

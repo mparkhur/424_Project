@@ -39,4 +39,6 @@ end
 
 counts=counts+1;
 
+clearvars -except index minmax counts;
+
 end

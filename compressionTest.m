@@ -1,6 +1,6 @@
 function compressionTest
 
-outfile = 'test.bit';
+outfile = 'test_lossy64.bit';
 infile = 'foreman_qcif.y';
 
 isLossy = false;
@@ -17,7 +17,7 @@ packet = double(packet);
 blkt = wavelet(packet(:,:,1));
 blkv = reshape(blkt, 1, []);
 
-for j = 2:size(packet,3)-1
+for j = 1:size(packet,3)-1
     mv = motionEstimation(packet(:,:,j), packet(:,:,(j+1)), blockSize(1), blockSize(2), 16);
     mcpr = motionError(packet(:,:,j), packet(:,:,(j+1)) ,mv);
 
@@ -40,30 +40,38 @@ height = packetSize(1);
 width = packetSize(2);
 frameSize = height*width;
 
-bHeight = blockSize(1);
-bWidth = blockSize(2);
+bHeight = height/blockSize(1);
+bWidth = width/blockSize(2);
 bSize = bHeight*bWidth*2;
 
-[counts, minmax, data, ~] = readDecPacket(outfile, isLossy, numBins, bitsRead);
+[minmax, data, ~] = readDecPacket(outfile, isLossy, numBins, bitsRead);
 
 datadq = dequantize(data, minmax, isLossy, numBins);
 
 frames = zeros(packetSize);
-frames(:,:,1) = resize(datadq(1:frameSize), height, width);
-datadq = datadq(frameSize:end);
+frames(:,:,1) = reshape(datadq(1:frameSize), height, width);
+frames(:,:,1) = inverseWavelet(frames(:,:,1));
+datadq = datadq(frameSize+1:end);
 
-for j = 2:length(frames)
+for j = 1:size(frames,3)-1
     
-    mv = resize(datadq(1:bSize), bHeight, bWidth, 2);
-    datadq = datadq(bSize:end);
+    mv = reshape(datadq(1:bSize), bHeight, bWidth, 2);
+    mv(:,:,1) = inverseWavelet(mv(:,:,1));
+    mv(:,:,2) = inverseWavelet(mv(:,:,2));
+    datadq = datadq(bSize+1:end);
     
-    pred = motionPrediction(prev,curr,mv);
+    pred = motionPrediction(frames(:,:,j),mv);
     
-    frames(:,:,j) = pred + resize(datadq(1:frameSize), height, width);
-    datadq = datadq(frameSize:end);
+    mcpr = reshape(datadq(1:frameSize), height, width);
+    mcpr = inverseWavelet(mcpr);
+    
+    frames(:,:,(j+1)) = pred + mcpr;
+    datadq = datadq(frameSize+1:end);
 end
 
 writeFrames(frames, 'test.y');
+
+clear;
 
 end
 

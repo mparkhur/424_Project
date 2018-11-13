@@ -6,8 +6,8 @@ mvy = mv(:,:,2);
 [height, width] = size(curr);
 [x_length, y_length] = size(mvx);
 
-blkx = ceil(height/x_length);
-blky = ceil(width/y_length);
+blkx = height/x_length;
+blky = width/y_length;
 
 mcpr = zeros(height, width);
 

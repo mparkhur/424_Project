@@ -2,8 +2,8 @@ function mv = motionEstimation(prev, curr, blkx, blky, search_range)
 
 [height, width] = size(curr);
 
-x_length = ceil(height / blkx);
-y_length = ceil(width / blky);
+x_length = height / blkx;
+y_length = width / blky;
 
 mvx = zeros(x_length, y_length);
 mvy = mvx;
