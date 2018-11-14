@@ -17,7 +17,7 @@ enc_mvs = arithenco(mvs, mvCounts);
 
 % max or min (depends on lossy or lossless)
 fid = fopen(outfile, 'ab');
-fwrite(fid, minmax, 'int16');
+fwrite(fid, minmax, 'bit16');
 
 % Length of Counts histogram
 if ~isLossy
@@ -28,7 +28,7 @@ end
 fwrite(fid, numel(enc_data), 'ubit32');
 
 % Counts histogram
-fwrite(fid, dataCounts, 'ubit16');
+fwrite(fid, dataCounts, 'ubit18');
 
 % Data
 fwrite(fid, enc_data, 'ubit1');
@@ -37,7 +37,7 @@ fwrite(fid, enc_data, 'ubit1');
 fwrite(fid, numel(enc_mvs), 'ubit16');
 
 % mvCounts histogram
-fwrite(fid, mvCounts, 'ubit16');
+fwrite(fid, mvCounts, 'ubit12');
 
 % mvs
 fwrite(fid, enc_mvs, 'ubit1');

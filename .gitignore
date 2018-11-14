@@ -1,5 +1,7 @@
-# Dont include test folder
+# Dont include test folder/files
 Test/
+test*
+Test*
 
 # Dont include .asv files
 *.asv
