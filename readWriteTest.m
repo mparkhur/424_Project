@@ -1,5 +1,7 @@
 function readWriteTest
 
+import io.*;
+
 [~,~] = mkdir('Test');
 [~,~] = mkdir('Test/readWrite');
 

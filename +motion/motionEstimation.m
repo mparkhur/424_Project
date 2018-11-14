@@ -29,7 +29,7 @@ for i = 1:x_length
                
                prev_block = prev(px:(px+blkx-1), py:(py+blky-1));
                
-               newSAD = sum(abs(curr_block - prev_block), 'all');
+               newSAD = sum(sum(abs(curr_block - prev_block)));
                
                if (newSAD < SAD)
                    

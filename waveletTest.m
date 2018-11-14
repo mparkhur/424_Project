@@ -1,5 +1,9 @@
 function waveletTest
 
+import io.*;
+import transform.*;
+import quantize.*;
+
 [~,~] = mkdir('Test');
 [~,~] = mkdir('Test/wavelet');
 

@@ -1,11 +1,16 @@
 function compressionTest
 
+import io.*;
+import transform.*;
+import quantize.*;
+import motion.*;
+
 [~,~] = mkdir('Test');
 [~,~] = mkdir('Test/compression');
 
 infile = 'foreman_qcif.y';
 
-isLossy = false;
+isLossy = true;
 qBins = 64;
 
 if (isLossy)
@@ -64,7 +69,7 @@ writeEncPacket(isLossy, fCounts, minmax, fIndex, mvCounts, mvIndex, outfile);
 clearvars -except outfile videoName;
 
 % Read compressed file header
-[packetSize, blockSize, isLossy, numBins, bitsRead] = readHeader(outfile);
+[packetSize, blockSize, isLossy, numBins, bytesRead] = readHeader(outfile);
 
 % Various Dimension Calculations
 height = packetSize(1);
@@ -75,7 +80,7 @@ mvWidth = width/blockSize(2);
 mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
 
 % Read in one packet
-[minmax, qdata, qmvs, ~] = readDecPacket(outfile, isLossy, numBins, packetSize, mvSize, bitsRead);
+[minmax, qdata, qmvs, ~] = readDecPacket(outfile, isLossy, numBins, packetSize, mvSize, bytesRead);
 
 % Dequantize data
 framesdq = dequantize(qdata, minmax, isLossy, numBins, false);

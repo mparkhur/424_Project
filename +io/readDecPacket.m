@@ -10,7 +10,7 @@ fseek(fid, byteOffset, 'bof');
 bitsRead = byteOffset * 8;
 
 % max or min (depends on lossy or lossless)
-minmax = fread(fid, 1, 'bit16=>double');
+minmax = fread(fid, 1, 'bit12=>double');
 bitsRead = bitsRead + 16;
 
 % Length of Counts histogram
