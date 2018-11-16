@@ -1,75 +1,111 @@
 function compressionTest
 
-outfile = 'test_lossy64.bit';
+import io.*;
+import transform.*;
+import quantize.*;
+import motion.*;
+
+[~,~] = mkdir('Test');
+[~,~] = mkdir('Test/compression');
+
 infile = 'foreman_qcif.y';
 
-isLossy = false;
-qBins = 256;
+isLossy = true;
+qBins = 64;
+
+if (isLossy)
+    outfile = sprintf('Test/compression/test_lossy%d.bit', qBins);
+    videoName = sprintf('Test/compression/test_lossy%d.y', qBins);
+else
+    outfile = 'Test/compression/test_lossless.bit';
+    videoName = 'Test/compression/test_lossless.y';
+end
 
 packetSize = [144 176 5];
 blockSize = [8 8];
 
+% Write the compressed file header
 writeHeader(packetSize, blockSize, isLossy, qBins, outfile);
 
+% Various Dimension Calculations
+height = packetSize(1);
+width = packetSize(2);
+
+mvHeight = height/blockSize(1);
+mvWidth = width/blockSize(2);
+mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
+
+% Read One Frame Packet
 packet = readFrameBlock(infile, packetSize, 1);
 packet = double(packet);
 
-blkt = wavelet(packet(:,:,1));
-blkv = reshape(blkt, 1, []);
+% Allocate frame vector and motion vector vector
+frames = zeros(packetSize);
+mvs = zeros(mvSize);
 
+% Insert the first frame into the frame vector
+frame1 = wavelet(packet(:,:,1));
+frames(:,:,1) = frame1;
+
+% Calculate motion vectors and error frames
 for j = 1:size(packet,3)-1
     mv = motionEstimation(packet(:,:,j), packet(:,:,(j+1)), blockSize(1), blockSize(2), 16);
     mcpr = motionError(packet(:,:,j), packet(:,:,(j+1)) ,mv);
 
-    mvt(:,:,1) = wavelet(mv(:,:,1)); 
-    mvt(:,:,2) = wavelet(mv(:,:,2));
     mcprt = wavelet(mcpr);
-
-    blkv = [blkv reshape(mvt, 1, []) reshape(mcprt, 1, [])];
+    
+    frames (:,:,(j+1)) = mcprt;
+    mvs(:,:,:,j) = mv;
 end
 
-[index, minmax, counts] = quantizeAndCount(blkv, qBins, isLossy);
+framesv = reshape(frames, 1, []);
+mvsv = reshape(mvs, 1, []);
 
-writeEncPacket(isLossy, counts, minmax, index, outfile);
+[fIndex, minmax, fCounts] = quantizeAndCount(framesv, qBins, isLossy, false);
+[mvIndex, ~, mvCounts] = quantizeAndCount(mvsv, 0, 0, true);
 
-clearvars -except outfile;
+writeEncPacket(isLossy, fCounts, minmax, fIndex, mvCounts, mvIndex, outfile);
 
-[packetSize, blockSize, isLossy, numBins, bitsRead] = readHeader(outfile);
+clearvars -except outfile videoName;
 
+% Read compressed file header
+[packetSize, blockSize, isLossy, numBins, bytesRead] = readHeader(outfile);
+
+% Various Dimension Calculations
 height = packetSize(1);
 width = packetSize(2);
-frameSize = height*width;
 
-bHeight = height/blockSize(1);
-bWidth = width/blockSize(2);
-bSize = bHeight*bWidth*2;
+mvHeight = height/blockSize(1);
+mvWidth = width/blockSize(2);
+mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
 
-[minmax, data, ~] = readDecPacket(outfile, isLossy, numBins, bitsRead);
+% Read in one packet
+[minmax, qdata, qmvs, ~] = readDecPacket(outfile, isLossy, numBins, packetSize, mvSize, bytesRead);
 
-datadq = dequantize(data, minmax, isLossy, numBins);
+% Dequantize data
+framesdq = dequantize(qdata, minmax, isLossy, numBins, false);
+mvsdq = dequantize(qmvs, 0, false, 0, true);
 
-frames = zeros(packetSize);
-frames(:,:,1) = reshape(datadq(1:frameSize), height, width);
-frames(:,:,1) = inverseWavelet(frames(:,:,1));
-datadq = datadq(frameSize+1:end);
+% Reshape frames and mvs
+framesdq = reshape(framesdq, packetSize);
+mvsdq = reshape(mvsdq, mvSize);
 
-for j = 1:size(frames,3)-1
-    
-    mv = reshape(datadq(1:bSize), bHeight, bWidth, 2);
-    mv(:,:,1) = inverseWavelet(mv(:,:,1));
-    mv(:,:,2) = inverseWavelet(mv(:,:,2));
-    datadq = datadq(bSize+1:end);
-    
-    pred = motionPrediction(frames(:,:,j),mv);
-    
-    mcpr = reshape(datadq(1:frameSize), height, width);
-    mcpr = inverseWavelet(mcpr);
-    
-    frames(:,:,(j+1)) = pred + mcpr;
-    datadq = datadq(frameSize+1:end);
+% Inverse Wavelet
+for i=1:packetSize(3)
+    framesdq(:,:,i) = inverseWavelet(framesdq(:,:,i));
 end
 
-writeFrames(frames, 'test.y');
+% Motion Prediction
+for j = 1:size(framesdq,3)-1
+    mv = mvsdq(:,:,:,j);
+    
+    pred = motionPrediction(framesdq(:,:,j),mv);
+    
+    framesdq(:,:,(j+1)) = framesdq(:,:,(j+1)) + pred;
+end
+
+% Write to .y file
+writeFrames(framesdq, videoName);
 
 clear;
 

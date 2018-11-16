@@ -14,7 +14,7 @@ fwrite(fid, blockDims(1), 'uint8');
 fwrite(fid, blockDims(2), 'uint8');
 
 % Lossy
-fwrite(fid, uint8(isLossy)*128, 'ubit1');
+fwrite(fid, isLossy, 'ubit1');
 
 if isLossy
     fwrite(fid, numBins, 'uint16');

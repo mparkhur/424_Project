@@ -1,11 +1,16 @@
-# Dont include test folder
+# Dont include test folder/files
 Test/
+test*
+Test*
 
 # Dont include .asv files
 *.asv
 
-# Dont include .bmp files
+# Dont include image files
 *.bmp
+*.jpg
+*.jpeg
+*.png
 
 # Dont include generated files
 *.bit
