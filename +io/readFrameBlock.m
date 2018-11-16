@@ -1,21 +1,21 @@
-function block = readFrameBlock(infile, blockDims, frameOffset)
+function packet = readFrameBlock(infile, packetDims, frameOffset)
 
-height = blockDims(1);
-width = blockDims(2);
-depth = blockDims(3);
+height = packetDims(1);
+width = packetDims(2); 
+depth = packetDims(3);
 
-frameSize = height*width;
-index = frameSize*(frameOffset - 1);
+packetSize = prod(packetDims);
+index = packetSize*(frameOffset - 1);
 
 fid = fopen(infile, 'rb');
-fread(fid, index, 'uint8');
-block = fread(fid, (frameSize*depth), 'uint8');
+fseek(fid, index, 'bof');
+packet = fread(fid, packetSize, 'uint8');
 fclose(fid);
 
-block = reshape(block, width, height, depth);
-block = permute(block, [2 1 3]);
-block = double(block);
+packet = reshape(packet, width, height, depth);
+packet = permute(packet, [2 1 3]);
+packet = double(packet);
 
-clearvars -except block;
+clearvars -except packet;
 
 end

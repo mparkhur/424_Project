@@ -7,11 +7,11 @@ fid = fopen(outfile, 'rb');
 
 % Move file pointer to relevant data
 fseek(fid, byteOffset, 'bof');
-bitsRead = byteOffset * 8;
+bitsRead = 0;
 
 % max or min (depends on lossy or lossless)
 minmax = fread(fid, 1, 'bit12=>double');
-bitsRead = bitsRead + 16;
+bitsRead = bitsRead + 12;
 
 % Length of Counts histogram
 if ~isLossy
@@ -31,11 +31,11 @@ bitsRead = bitsRead + 32;
 
 % Counts histogram
 dataCounts = fread(fid, lenCounts, 'ubit18=>double');
-bitsRead = bitsRead + lenCounts * 18;
+bitsRead = bitsRead + (lenCounts * 18);
 
 % Data
 enc_data = fread(fid, numBitsData, 'ubit1');
-bitsRead = bitsRead + double(numBitsData);
+bitsRead = bitsRead + numBitsData;
 
 % Total number of bits in mvs
 numBitsMV = fread(fid, 1, 'ubit16=>double');
@@ -43,7 +43,7 @@ bitsRead = bitsRead + 16;
 
 % MV Counts histogram
 mvCounts = fread(fid, 33, 'ubit12=>double');
-bitsRead = bitsRead + 33 * 12;
+bitsRead = bitsRead + (33 * 12);
 
 % MVs
 enc_mvs = fread(fid, numBitsMV, 'ubit1');
@@ -51,7 +51,7 @@ bitsRead = bitsRead + numBitsMV;
 
 fclose(fid);
 
-bytesRead = ceil(bitsRead/8);
+bytesRead = byteOffset + ceil(bitsRead/8);
 
 % Decode Data and mvs
 data = arithdeco(enc_data, dataCounts, prod(dataDims));
