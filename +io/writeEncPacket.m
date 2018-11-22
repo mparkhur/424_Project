@@ -1,56 +1,62 @@
-function writeEncPacket(isLossy, dataCounts, minmax, data, mvCounts, mvs, outfile)
-
-% | minmax | (optional - countsLength) | totalDataBits | DataCounts |  DATA  | totalMVBits | mvCounts |  MVS  |
-% | int16  |         uint16            |     uint32    |   uint16   |  ubit1 |    uint32   |  uint16  | ubit1 |
+function writeEncPacket(fMax, fCounts, fData, rMax, rCounts, rData, mvCounts, mvData, outfile)
 
 bitsWritten = 0;
 
-if size(dataCounts,1) > 1
-    dataCounts = reshape(dataCounts, 1, []);
-end
-
-if size(data,1) > 1
-    data = reshape(data, 1, []);
-end
-
 % Encode Data and mvs
-enc_data = arithenco(data, dataCounts);
-enc_mvs = arithenco(mvs, mvCounts);
+f1 = parfeval(@arithenco, 1, fData, fCounts);
+f2 = parfeval(@arithenco, 1, rData, rCounts);
+f3 = parfeval(@arithenco, 1, mvData, mvCounts);
+%enc_fdata = arithenco(fData, fCounts);
+%enc_rdata = arithenco(rData, rCounts);
+%enc_mvdata = arithenco(mvData, mvCounts);
 
-% max or min (depends on lossy or lossless)
+enc_fdata = fetchOutputs(f1);
+enc_rdata = fetchOutputs(f2);
+enc_mvdata = fetchOutputs(f3);
+
 fid = fopen(outfile, 'ab');
-fwrite(fid, minmax, 'bit12');
-bitsWritten = bitsWritten + 12;
 
-% Length of Counts histogram
-if ~isLossy
-    fwrite(fid, numel(dataCounts), 'ubit16');
-    bitsWritten = bitsWritten + 16;
-end
+%========= IFRAME =========
 
-% Total number of bits in Data
-fwrite(fid, numel(enc_data), 'ubit32');
+% fMax
+fwrite(fid, fMax, 'ubit10');
+bitsWritten = bitsWritten + 10;
+
+% Total number of bits in fData
+fwrite(fid, numel(enc_fdata), 'ubit32');
 bitsWritten = bitsWritten + 32;
 
-% Counts histogram
-fwrite(fid, dataCounts, 'ubit18');
-bitsWritten = bitsWritten + (18 * numel(dataCounts));
+% fCounts histogram
+fwrite(fid, fCounts, 'ubit16');
+bitsWritten = bitsWritten + (16 * numel(fCounts));
 
-% Data
-fwrite(fid, enc_data, 'ubit1');
-bitsWritten = bitsWritten + numel(enc_data);
+% fData
+fwrite(fid, enc_fdata, 'ubit1');
+bitsWritten = bitsWritten + numel(enc_fdata);
 
-% Total number of bits in mvs
-fwrite(fid, numel(enc_mvs), 'ubit16');
+%========= RESIDUALS =========
+
+% rMax
+fwrite(fid, rMax, 'ubit10');
+bitsWritten = bitsWritten + 10;
+
+% Total number of bits in rData
+fwrite(fid, numel(enc_rdata), 'ubit32');
+bitsWritten = bitsWritten + 32;
+
+% rData
+fwrite(fid, enc_rdata, 'ubit1');
+bitsWritten = bitsWritten + numel(enc_rdata); 
+
+%========= MOTION VECTORS =========
+
+% Total number of bits in mvData
+fwrite(fid, numel(enc_mvdata), 'ubit16');
 bitsWritten = bitsWritten + 16;
 
-% mvCounts histogram
-fwrite(fid, mvCounts, 'ubit12');
-bitsWritten = bitsWritten + (12 * numel(mvCounts));
-
-% mvs
-fwrite(fid, enc_mvs, 'ubit1');
-bitsWritten = bitsWritten + numel(enc_mvs); 
+% mvData
+fwrite(fid, enc_mvdata, 'ubit1');
+bitsWritten = bitsWritten + numel(enc_mvdata); 
 
 padding = mod(bitsWritten, 8);
 
