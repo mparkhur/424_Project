@@ -1,5 +1,14 @@
 function mv = motionEstimation(prev, curr, blkx, blky, search_range)
 
+% Half Pixel Stuff
+search_range = 2*search_range;
+blkx = 2*blkx;
+blky = 2*blky;
+
+curr = imresize(curr, 2);
+prev = imresize(prev, 2);
+%====
+
 [height, width] = size(curr);
 
 x_length = height / blkx;

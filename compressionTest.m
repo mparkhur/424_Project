@@ -9,21 +9,28 @@ import motion.*;
 [~,~] = mkdir('Test/compression');
 
 infile = 'foreman_qcif.y';
+isCIF = false;
 
-isLossy = true;
 qBins = 64;
 searchRange = 16;
 
-if (isLossy)
-    outfile = sprintf('Test/compression/test_lossy%d.bit', qBins);
-    videoName = sprintf('Test/compression/test_lossy%d_%s.y', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
-else
-    outfile = 'Test/compression/test_lossless.bit';
-    videoName = sprintf('Test/compression/test_lossless_%s.y', datestr(now,'yy-mm-dd(HH;MM)'));
-end
+outfile = sprintf('Test/compression/test_lossy%d_%s.bit', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
+videoName = sprintf('Test/compression/test_lossy%d_%s.y', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
 
-packetSize = [144 176 5];
+if (isCIF)
+    packetSize = [288 352 5];
+else
+    packetSize = [144 176 5];
+end
 blockSize = [8 8];
+
+% CIF can acheive better compression at 2 wavelet levels
+% QCIF becomes too blurry at 2 levels
+if (isCIF)
+    waveletLevel = 2;
+else
+    waveletLevel = 1;
+end
 
 % Various Dimension Calculations
 height = packetSize(1);
@@ -37,20 +44,22 @@ mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
 file = dir(infile);
 num_packets = file.bytes/(prod(packetSize));
 
+headerWritten = false;
+
 gcp;
 
-for i = 1:num_packets
+for i = 1:5%num_packets
 
     % Read One Frame Packet
     packet = readFrameBlock(infile, packetSize, i);
-    packet = double(packet - 128);
+    packet = double(packet - 127);
 
     % Allocate frame vector and motion vector vector
     frames = zeros(packetSize);
     mvs = zeros(mvSize);
 
     % Insert the first frame into the frame vector
-    frame1 = wavelet(packet(:,:,1));
+    frame1 = wavelet(packet(:,:,1), waveletLevel);
     frames(:,:,1) = frame1;
 
     % Calculate motion vectors and error frames
@@ -58,7 +67,7 @@ for i = 1:num_packets
         mv = motionEstimation(packet(:,:,j), packet(:,:,(j+1)), blockSize(1), blockSize(2), searchRange);
         mcpr = motionError(packet(:,:,j), packet(:,:,(j+1)) ,mv);
 
-        mcprt = wavelet(mcpr);
+        mcprt = wavelet(mcpr, waveletLevel);
 
         frames (:,:,(j+1)) = mcprt;
         mvs(:,:,:,j) = mv;
@@ -72,12 +81,14 @@ for i = 1:num_packets
     [rIndex, rMax] = quantizeResiduals(mcprsv, qBins);
     [mvIndex] = quantizeMVs(mvsv);
     
-    if (i == 1)
+    if (headerWritten == false)
         rCounts = countResiduals(rIndex, qBins);
         mvCounts = countMVs(mvIndex);
         
         % Write the compressed file header
         writeHeader(packetSize, blockSize, qBins, rCounts, mvCounts, outfile);
+        
+        headerWritten = true;
     end
     
     writeEncPacket(fMax, fCounts, fIndex, rMax, rCounts, rIndex, mvCounts, mvIndex, outfile);
@@ -117,7 +128,13 @@ residualsSize = [ frameSize packetSize(3)-1 ];
 
 mvHeight = height/blockSize(1);
 mvWidth = width/blockSize(2);
-mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
+mvSize = [ mvHeight mvWidth 2 packetSize(3)-1 ];
+
+if (packetSize(1) == 288)
+    waveletLevel = 2;
+else
+    waveletLevel = 1;
+end
 
 %calculate the total number of packets
 file = dir(outfile);
@@ -140,10 +157,10 @@ while totalBytes > bytesRead
     mvs = reshape(mvs, mvSize);
 
     % Inverse Wavelet
-    iframe = inverseWavelet(iframe);
+    iframe = inverseWavelet(iframe, waveletLevel);
     
     parfor i=1:residualsSize(3)
-        residuals(:,:,i) = inverseWavelet(residuals(:,:,i));
+        residuals(:,:,i) = inverseWavelet(residuals(:,:,i), waveletLevel);
     end
     
     frames = zeros(packetSize);
@@ -158,7 +175,7 @@ while totalBytes > bytesRead
         frames(:,:,(j+1)) = residuals(:,:,j) + pred;
     end
     
-    frames = frames + 128;
+    frames = frames + 127;
 
     % Write to .y file
     writeFrames(frames, videoName);

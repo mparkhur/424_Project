@@ -21,8 +21,8 @@ numBitsfData = fread(fid, 1, 'ubit32=>double');
 bitsRead = bitsRead + 32;
 
 % fCounts histogram
-fCounts = fread(fid, numBins, 'ubit16=>double');
-bitsRead = bitsRead + (16 * numBins);
+fCounts = fread(fid, numBins, 'ubit18=>double');
+bitsRead = bitsRead + (18 * numBins);
 
 % fData
 enc_fdata = fread(fid, numBitsfData, 'ubit1');
@@ -45,8 +45,8 @@ bitsRead = bitsRead + numBitsrData;
 %========= MOTION VECTORS =========
 
 % Total number of bits in mvData
-numBitsmvData = fread(fid, 1, 'ubit16=>double');
-bitsRead = bitsRead + 16;
+numBitsmvData = fread(fid, 1, 'ubit18=>double');
+bitsRead = bitsRead + 18;
 
 % mvData
 enc_mvdata = fread(fid, numBitsmvData, 'ubit1');
@@ -64,9 +64,6 @@ mvSize = prod(mvDims);
 f1 = parfeval(@arithdeco, 1, enc_fdata, fCounts, fSize);
 f2 = parfeval(@arithdeco, 1, enc_rdata, rCounts, rSize);
 f3 = parfeval(@arithdeco, 1, enc_mvdata, mvCounts, mvSize);
-%iframe = arithdeco(enc_fdata, fCounts, fSize);
-%residuals = arithdeco(enc_rdata, rCounts, rSize);
-%mvs = arithdeco(enc_mvdata, mvCounts, mvSize);
 
 iframe = fetchOutputs(f1);
 residuals = fetchOutputs(f2);

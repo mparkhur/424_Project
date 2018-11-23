@@ -6,9 +6,6 @@ bitsWritten = 0;
 f1 = parfeval(@arithenco, 1, fData, fCounts);
 f2 = parfeval(@arithenco, 1, rData, rCounts);
 f3 = parfeval(@arithenco, 1, mvData, mvCounts);
-%enc_fdata = arithenco(fData, fCounts);
-%enc_rdata = arithenco(rData, rCounts);
-%enc_mvdata = arithenco(mvData, mvCounts);
 
 enc_fdata = fetchOutputs(f1);
 enc_rdata = fetchOutputs(f2);
@@ -27,8 +24,8 @@ fwrite(fid, numel(enc_fdata), 'ubit32');
 bitsWritten = bitsWritten + 32;
 
 % fCounts histogram
-fwrite(fid, fCounts, 'ubit16');
-bitsWritten = bitsWritten + (16 * numel(fCounts));
+fwrite(fid, fCounts, 'ubit18');
+bitsWritten = bitsWritten + (18 * numel(fCounts));
 
 % fData
 fwrite(fid, enc_fdata, 'ubit1');
@@ -51,8 +48,8 @@ bitsWritten = bitsWritten + numel(enc_rdata);
 %========= MOTION VECTORS =========
 
 % Total number of bits in mvData
-fwrite(fid, numel(enc_mvdata), 'ubit16');
-bitsWritten = bitsWritten + 16;
+fwrite(fid, numel(enc_mvdata), 'ubit18');
+bitsWritten = bitsWritten + 18;
 
 % mvData
 fwrite(fid, enc_mvdata, 'ubit1');

@@ -1,5 +1,10 @@
 function mcpr = motionError(prev,curr,mv)
 
+% Half Pixel Stuff
+curr = imresize(curr, 2);
+prev = imresize(prev, 2);
+%====
+
 mvx = mv(:,:,1);
 mvy = mv(:,:,2);
 
@@ -26,5 +31,7 @@ for i = 1:x_length
        
    end
 end
+
+mcpr = imresize(mcpr, 0.5);
 
 end
