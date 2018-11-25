@@ -8,10 +8,10 @@ import motion.*;
 [~,~] = mkdir('Test');
 [~,~] = mkdir('Test/compression');
 
-infile = 'foreman_qcif.y';
-isCIF = false;
+infile = 'foreman_cif.y';
+isCIF = true;
 
-qBins = 64;
+qBins = 100;
 searchRange = 16;
 
 outfile = sprintf('Test/compression/test_lossy%d_%s.bit', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
@@ -35,6 +35,9 @@ end
 % Various Dimension Calculations
 height = packetSize(1);
 width = packetSize(2);
+frameSize = [ height width ];
+
+residualsSize = [ frameSize packetSize(3)-1 ];
 
 mvHeight = height/blockSize(1);
 mvWidth = width/blockSize(2);
@@ -48,36 +51,38 @@ headerWritten = false;
 
 gcp;
 
-for i = 1:5%num_packets
+for i = 1:num_packets
 
     % Read One Frame Packet
     packet = readFrameBlock(infile, packetSize, i);
     packet = double(packet - 127);
 
     % Allocate frame vector and motion vector vector
-    frames = zeros(packetSize);
+    residuals = zeros(residualsSize);
     mvs = zeros(mvSize);
 
     % Insert the first frame into the frame vector
-    frame1 = wavelet(packet(:,:,1), waveletLevel);
-    frames(:,:,1) = frame1;
+    iframe = wavelet(packet(:,:,1), waveletLevel);
 
     % Calculate motion vectors and error frames
-    for j = 1:size(packet,3)-1
+    for j = 1:packetSize(3)-1
         mv = motionEstimation(packet(:,:,j), packet(:,:,(j+1)), blockSize(1), blockSize(2), searchRange);
         mcpr = motionError(packet(:,:,j), packet(:,:,(j+1)) ,mv);
 
-        mcprt = wavelet(mcpr, waveletLevel);
-
-        frames (:,:,(j+1)) = mcprt;
+        residuals(:,:,j) = wavelet(mcpr, waveletLevel);
         mvs(:,:,:,j) = mv;
     end
+    
+    % DCPM
+    for k = packetSize(3)-1:-1:2
+        residuals(:,:,k) = residuals(:,:,k) - residuals(:,:,k-1);
+        mvs(:,:,:,k) = mvs(:,:,:,k) - mvs(:,:,:,k-1);
+    end
 
-    iframev = reshape(frames(:,:,1), 1, []);
-    mcprsv = reshape(frames(:,:,2:end), 1, []);
+    mcprsv = reshape(residuals, 1, []);
     mvsv = reshape(mvs, 1, []);
 
-    [fIndex, fMax, fCounts] = quantizeiFrame(iframev, qBins);
+    [fIndex, fMax, fCounts] = quantizeiFrame(iframe, qBins);
     [rIndex, rMax] = quantizeResiduals(mcprsv, qBins);
     [mvIndex] = quantizeMVs(mvsv);
     
@@ -92,24 +97,6 @@ for i = 1:5%num_packets
     end
     
     writeEncPacket(fMax, fCounts, fIndex, rMax, rCounts, rIndex, mvCounts, mvIndex, outfile);
-    
-%     figure;
-%     for x = 1:5
-%         img = frames(:,:,x);
-%         CA = img(1:2:end,1:2:end);
-%         CH = img(2:2:end,1:2:end);
-%         CV = img(1:2:end,2:2:end);
-%         CD = img(2:2:end,2:2:end);
-%         img = [ CA CH ; CV CD ];
-%         subplot(2,5,x);
-%         imshow(uint8(img));
-%     end
-%     
-%     for x = 1:5
-%         img = inverseWavelet(frames(:,:,x));
-%         subplot(2,5,x+5);
-%         imshow(uint8(img));
-%     end
 
     disp("Encoded: " + i);
 end
@@ -147,7 +134,7 @@ while totalBytes > bytesRead
     [fMax, qiframe, rMax, qresiduals, qmvs, bytesRead] = readDecPacket(outfile, numBins, packetSize, mvSize, rCounts, mvCounts, bytesRead);
 
     % Dequantize data
-    iframe = dequantizeiFrame(qiframe, fMax, numBins);
+    iframe = dequantizeiFrame(qiframe, fMax, numBins, frameSize);
     residuals = dequantizeResiduals(qresiduals, rMax, numBins);
     mvs = dequantizeMVs(qmvs);
 
@@ -155,6 +142,12 @@ while totalBytes > bytesRead
     iframe = reshape(iframe, frameSize);
     residuals = reshape(residuals, residualsSize);
     mvs = reshape(mvs, mvSize);
+    
+    % Reverse DCPM
+    for j = 2:packetSize(3)-1
+        residuals(:,:,j) = residuals(:,:,j) + residuals(:,:,j-1);
+        mvs(:,:,:,j) = mvs(:,:,:,j) + mvs(:,:,:,j-1);
+    end
 
     % Inverse Wavelet
     iframe = inverseWavelet(iframe, waveletLevel);

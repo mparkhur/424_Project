@@ -1,10 +1,6 @@
 function data = dequantizeResiduals(qdata, maxi, numBins)
 
-numBins = floor(numBins/2);
-
-if (size(qdata,1)>1)
-    qdata = reshape(qdata,1,[]);
-end
+numBins = floor(numBins/4);
 
 if (mod(numBins,2)==0)
     numBins=numBins+1;

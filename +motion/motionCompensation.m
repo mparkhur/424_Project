@@ -1,4 +1,4 @@
-function mcpr = motionError(prev,curr,mv)
+function mcpr = motionCompensation(prev,curr,mv)
 
 % Half Pixel Stuff
 curr = imresize(curr, 2);

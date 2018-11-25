@@ -1,9 +1,9 @@
 function counts = countMVs(qdata)
     
-counts = zeros(1,65);
+counts = zeros(1,129);
 
-for i=1:numel(qdata)
-        counts(qdata(i)) = counts(qdata(i))+1;
+for i=1:numel(qdata)   
+    counts(qdata(i)) = counts(qdata(i))+1;
 end
 
 counts=counts+1;

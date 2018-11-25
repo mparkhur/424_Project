@@ -27,7 +27,7 @@ bytesRead = bytesRead + 1;
 numBins = fread(fid, 1, 'uint16');
 bytesRead = bytesRead + 2;
 
-rBins = ceil(numBins/2);
+rBins = ceil(numBins/4);
 
 % Always an odd number of bins
 if (mod(rBins,2)==0)
@@ -39,8 +39,8 @@ rCounts = fread(fid, rBins, 'uint32');
 bytesRead = bytesRead + (rBins * 4);
 
 % MV counts
-mvCounts = fread(fid, 65, 'uint16');
-bytesRead = bytesRead + (65 * 2);
+mvCounts = fread(fid, 129, 'uint16');
+bytesRead = bytesRead + (129 * 2);
 
 fclose(fid);
 

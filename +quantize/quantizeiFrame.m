@@ -1,21 +1,27 @@
 function [qdata,maxi,counts] = quantizeiFrame(data, numBins)
 
-if (size(data,1)>1)
-    data = reshape(data,1,[]);
-end
-
 if (mod(numBins,2)==0)
     numBins=numBins+1;
 end
 
 absd = abs(data);
-maxi = ceil(max(absd));
+maxi = ceil(max(max(absd)));
 
-stepSize = ceil((maxi*2)/numBins);
+stepSizeCa = ceil((maxi*2)/numBins);
+stepSizeDetail = stepSizeCa * 4;
 
-qdata = sign(data).*floor(absd/stepSize);
+% Detail
+
+qdata = sign(data).*floor(absd./stepSizeDetail);
+
+% CA
+
+qdata(1:2:end,1:2:end) = sign(data(1:2:end,1:2:end)).*floor(absd(1:2:end,1:2:end)./stepSizeCa);
 
 qdata = qdata + ceil(numBins/2);
+
+% Counts
+qdata = reshape(qdata,1,[]);
 
 counts = zeros(1,numBins);
 

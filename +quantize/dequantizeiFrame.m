@@ -1,18 +1,23 @@
-function data = dequantizeiFrame(qdata, maxi, numBins)
+function data = dequantizeiFrame(qdata, maxi, numBins, frameDims)
 
-if (size(qdata,1)>1)
-    qdata = reshape(qdata,1,[]);
-end
+qdata = reshape(qdata,frameDims(1),frameDims(2));
 
 if (mod(numBins,2)==0)
     numBins=numBins+1;
 end
 
-stepSize = ceil((maxi*2)/numBins);
+stepSizeCa = ceil((maxi*2)/numBins);
+stepSizeDetail = stepSizeCa * 4;
 
 qdata = qdata - ceil(numBins/2);
 
-data = qdata.*stepSize;
+% Detail
+
+data = qdata.*stepSizeDetail;
+
+% CA
+
+data(1:2:end,1:2:end) = qdata(1:2:end,1:2:end).*stepSizeCa;
 
 clearvars -except data;
 

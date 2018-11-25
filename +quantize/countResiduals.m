@@ -1,6 +1,6 @@
 function counts = countResiduals(qdata, numBins)
 
-numBins = floor(numBins/2);
+numBins = floor(numBins/4);
 
 if (mod(numBins,2)==0)
     numBins=numBins+1;
