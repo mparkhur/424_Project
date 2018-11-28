@@ -1,5 +1,14 @@
 function mv = motionEstimation(prev, curr, blkx, blky, search_range)
 
+% Half Pixel Stuff
+search_range = 2*search_range;
+blkx = 2*blkx;
+blky = 2*blky;
+
+curr = imresize(curr, 2);
+prev = imresize(prev, 2);
+%====
+
 [height, width] = size(curr);
 
 x_length = height / blkx;
@@ -29,7 +38,7 @@ for i = 1:x_length
                
                prev_block = prev(px:(px+blkx-1), py:(py+blky-1));
                
-               newSAD = sum(sum(abs(curr_block - prev_block)));
+               newSAD = sum(sum((curr_block - prev_block).^2))/numel(curr_block);
                
                if (newSAD < SAD)
                    

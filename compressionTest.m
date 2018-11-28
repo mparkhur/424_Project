@@ -8,29 +8,36 @@ import motion.*;
 [~,~] = mkdir('Test');
 [~,~] = mkdir('Test/compression');
 
-infile = 'foreman_qcif.y';
+infile = 'foreman_cif.y';
+isCIF = true;
 
-isLossy = true;
-qBins = 64;
+qBins = 100;
 searchRange = 16;
 
-if (isLossy)
-    outfile = sprintf('Test/compression/test_lossy%d.bit', qBins);
-    videoName = sprintf('Test/compression/test_lossy%d_%s.y', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
-else
-    outfile = 'Test/compression/test_lossless.bit';
-    videoName = sprintf('Test/compression/test_lossless_%s.y', datestr(now,'yy-mm-dd(HH;MM)'));
-end
+outfile = sprintf('Test/compression/test_lossy%d_%s.bit', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
+videoName = sprintf('Test/compression/test_lossy%d_%s.y', qBins, datestr(now,'yy-mm-dd(HH;MM)'));
 
-packetSize = [144 176 5];
+if (isCIF)
+    packetSize = [288 352 5];
+else
+    packetSize = [144 176 5];
+end
 blockSize = [8 8];
 
-% Write the compressed file header
-writeHeader(packetSize, blockSize, isLossy, qBins, outfile);
+% CIF can acheive better compression at 2 wavelet levels
+% QCIF becomes too blurry at 2 levels
+if (isCIF)
+    waveletLevel = 2;
+else
+    waveletLevel = 1;
+end
 
 % Various Dimension Calculations
 height = packetSize(1);
 width = packetSize(2);
+frameSize = [ height width ];
+
+residualsSize = [ frameSize packetSize(3)-1 ];
 
 mvHeight = height/blockSize(1);
 mvWidth = width/blockSize(2);
@@ -40,54 +47,81 @@ mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
 file = dir(infile);
 num_packets = file.bytes/(prod(packetSize));
 
+headerWritten = false;
+
+gcp;
+
 for i = 1:num_packets
 
     % Read One Frame Packet
     packet = readFrameBlock(infile, packetSize, i);
-    packet = double(packet);
+    packet = double(packet - 127);
 
     % Allocate frame vector and motion vector vector
-    frames = zeros(packetSize);
+    residuals = zeros(residualsSize);
     mvs = zeros(mvSize);
 
     % Insert the first frame into the frame vector
-    frame1 = wavelet(packet(:,:,1));
-    frames(:,:,1) = frame1;
+    iframe = wavelet(packet(:,:,1), waveletLevel);
 
     % Calculate motion vectors and error frames
-    for j = 1:size(packet,3)-1
+    for j = 1:packetSize(3)-1
         mv = motionEstimation(packet(:,:,j), packet(:,:,(j+1)), blockSize(1), blockSize(2), searchRange);
         mcpr = motionError(packet(:,:,j), packet(:,:,(j+1)) ,mv);
 
-        mcprt = wavelet(mcpr);
-
-        frames (:,:,(j+1)) = mcprt;
+        residuals(:,:,j) = wavelet(mcpr, waveletLevel);
         mvs(:,:,:,j) = mv;
     end
+    
+    % DCPM
+    for k = packetSize(3)-1:-1:2
+        residuals(:,:,k) = residuals(:,:,k) - residuals(:,:,k-1);
+        mvs(:,:,:,k) = mvs(:,:,:,k) - mvs(:,:,:,k-1);
+    end
 
-    framesv = reshape(frames, 1, []);
+    mcprsv = reshape(residuals, 1, []);
     mvsv = reshape(mvs, 1, []);
 
-    [fIndex, minmax, fCounts] = quantizeAndCount(framesv, qBins, isLossy, false);
-    [mvIndex, ~, mvCounts] = quantizeAndCount(mvsv, 0, 0, true);
-   
-    writeEncPacket(isLossy, fCounts, minmax, fIndex, mvCounts, mvIndex, outfile);
+    [fIndex, fMax, fCounts] = quantizeiFrame(iframe, qBins);
+    [rIndex, rMax] = quantizeResiduals(mcprsv, qBins);
+    [mvIndex] = quantizeMVs(mvsv);
+    
+    if (headerWritten == false)
+        rCounts = countResiduals(rIndex, qBins);
+        mvCounts = countMVs(mvIndex);
+        
+        % Write the compressed file header
+        writeHeader(packetSize, blockSize, qBins, rCounts, mvCounts, outfile);
+        
+        headerWritten = true;
+    end
+    
+    writeEncPacket(fMax, fCounts, fIndex, rMax, rCounts, rIndex, mvCounts, mvIndex, outfile);
 
-    disp(i);
+    disp("Encoded: " + i);
 end
 
 clearvars -except outfile videoName;
 
 % Read compressed file header
-[packetSize, blockSize, isLossy, numBins, bytesRead] = readHeader(outfile);
+[packetSize, blockSize, numBins, rCounts, mvCounts, bytesRead] = readHeader(outfile);
 
 % Various Dimension Calculations
 height = packetSize(1);
 width = packetSize(2);
+frameSize = [ height width ];
+
+residualsSize = [ frameSize packetSize(3)-1 ];
 
 mvHeight = height/blockSize(1);
 mvWidth = width/blockSize(2);
-mvSize = [mvHeight mvWidth 2 packetSize(3)-1];
+mvSize = [ mvHeight mvWidth 2 packetSize(3)-1 ];
+
+if (packetSize(1) == 288)
+    waveletLevel = 2;
+else
+    waveletLevel = 1;
+end
 
 %calculate the total number of packets
 file = dir(outfile);
@@ -97,34 +131,49 @@ k = 1;
 %START
 while totalBytes > bytesRead
     % Read in one packet
-    [minmax, qdata, qmvs, bytesRead] = readDecPacket(outfile, isLossy, numBins, packetSize, mvSize, bytesRead);
+    [fMax, qiframe, rMax, qresiduals, qmvs, bytesRead] = readDecPacket(outfile, numBins, packetSize, mvSize, rCounts, mvCounts, bytesRead);
 
     % Dequantize data
-    framesdq = dequantize(qdata, minmax, isLossy, numBins, false);
-    mvsdq = dequantize(qmvs, 0, false, 0, true);
+    iframe = dequantizeiFrame(qiframe, fMax, numBins, frameSize);
+    residuals = dequantizeResiduals(qresiduals, rMax, numBins);
+    mvs = dequantizeMVs(qmvs);
 
     % Reshape frames and mvs
-    framesdq = reshape(framesdq, packetSize);
-    mvsdq = reshape(mvsdq, mvSize);
+    iframe = reshape(iframe, frameSize);
+    residuals = reshape(residuals, residualsSize);
+    mvs = reshape(mvs, mvSize);
+    
+    % Reverse DCPM
+    for j = 2:packetSize(3)-1
+        residuals(:,:,j) = residuals(:,:,j) + residuals(:,:,j-1);
+        mvs(:,:,:,j) = mvs(:,:,:,j) + mvs(:,:,:,j-1);
+    end
 
     % Inverse Wavelet
-    for i=1:packetSize(3)
-        framesdq(:,:,i) = inverseWavelet(framesdq(:,:,i));
+    iframe = inverseWavelet(iframe, waveletLevel);
+    
+    parfor i=1:residualsSize(3)
+        residuals(:,:,i) = inverseWavelet(residuals(:,:,i), waveletLevel);
     end
+    
+    frames = zeros(packetSize);
+    frames(:,:,1) = iframe;
 
     % Motion Prediction
-    for j = 1:size(framesdq,3)-1
-        mv = mvsdq(:,:,:,j);
+    for j = 1:size(residuals,3)
+        mv = mvs(:,:,:,j);
 
-        pred = motionPrediction(framesdq(:,:,j),mv);
+        pred = motionPrediction(frames(:,:,j),mv);
 
-        framesdq(:,:,(j+1)) = framesdq(:,:,(j+1)) + pred;
+        frames(:,:,(j+1)) = residuals(:,:,j) + pred;
     end
+    
+    frames = frames + 127;
 
     % Write to .y file
-    writeFrames(framesdq, videoName);
+    writeFrames(frames, videoName);
     
-    disp(k);
+    disp("Decoded: " + k);
     k = k + 1;
 
 end

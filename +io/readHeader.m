@@ -1,11 +1,7 @@
-function [packetDims, blockDims, isLossy, numBins, bytesRead] = readHeader(outfile)
-
-% | frameHeight | frameWidth | packetLength | searchBlockHeight |
-% searchBlockWidth | isLossy | (optional - numBins) |
+function [packetDims, blockDims, numBins, rCounts, mvCounts, bytesRead] = readHeader(outfile)
 
 packetDims = zeros(1,3);
 blockDims = zeros(1,2);
-numBins = 0;
 bytesRead = 0;
 
 fid = fopen(outfile, 'rb');
@@ -27,17 +23,27 @@ bytesRead = bytesRead + 1;
 blockDims(2) = fread(fid, 1, 'uint8');
 bytesRead = bytesRead + 1;
 
-% Lossy
-isLossy = fread(fid, 1, 'uint8');
-bytesRead = bytesRead + 1;
+% Number of bins
+numBins = fread(fid, 1, 'uint16');
+bytesRead = bytesRead + 2;
 
-if isLossy
-    numBins = fread(fid, 1, 'uint16');
-    bytesRead = bytesRead + 2;
+rBins = ceil(numBins/4);
+
+% Always an odd number of bins
+if (mod(rBins,2)==0)
+    rBins=rBins+1;
 end
+
+% Residual counts
+rCounts = fread(fid, rBins, 'uint32');
+bytesRead = bytesRead + (rBins * 4);
+
+% MV counts
+mvCounts = fread(fid, 129, 'uint16');
+bytesRead = bytesRead + (129 * 2);
 
 fclose(fid);
 
-clearvars -except packetDims blockDims isLossy numBins bytesRead;
+clearvars -except packetDims blockDims numBins rCounts mvCounts bytesRead;
 
 end

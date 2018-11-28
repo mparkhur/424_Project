@@ -1,6 +1,15 @@
-function idata = inverseWavelet(data)
+function idata = inverseWavelet(data, level)
 
-ls = liftwave('cdf2.2','Int2Int');
-idata = ilwt2(data,ls);
+ ls = liftwave('bior4.4');
+ 
+ % Level 2
+ if (level == 2)
+    ca = data(1:2:end,1:2:end);
+    ca = ilwt2(ca,ls);
+    data(1:2:end,1:2:end) = ca;
+ end
 
+ % Level 1
+ idata = ilwt2(data,ls);
+ 
 end

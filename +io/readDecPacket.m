@@ -1,7 +1,8 @@
-function [minmax, data, mvs, bytesRead] = readDecPacket(outfile, isLossy, numBins, dataDims, mvDims, byteOffset)
+function [fMax, iframe, rMax, residuals, mvs, bytesRead] = readDecPacket(outfile, numBins, dataDims, mvDims, rCounts, mvCounts, byteOffset)
 
-% | minmax | (optional - countsLength) | totalDataBits | DataCounts |  DATA  | totalMVBits | mvCounts |  MVS  |
-% | int16  |         uint16            |     uint32    |   uint16   |  ubit1 |    uint32   |  uint16  | ubit1 |
+if (mod(numBins,2)==0)
+    numBins=numBins+1;
+end
 
 fid = fopen(outfile, 'rb');
 
@@ -9,54 +10,65 @@ fid = fopen(outfile, 'rb');
 fseek(fid, byteOffset, 'bof');
 bitsRead = 0;
 
-% max or min (depends on lossy or lossless)
-minmax = fread(fid, 1, 'bit12=>double');
-bitsRead = bitsRead + 12;
+%========= IFRAME =========
 
-% Length of Counts histogram
-if ~isLossy
-    lenCounts = fread(fid, 1, 'ubit16=>double');
-    bitsRead = bitsRead + 16;
-else
-    if (mod(numBins,2)==0)
-        numBins=numBins+1;
-    end
-    
-    lenCounts = numBins;
-end
+% fMax
+fMax = fread(fid, 1, 'ubit10=>double');
+bitsRead = bitsRead + 10;
 
-% Total number of bits in Data
-numBitsData = fread(fid, 1, 'ubit32=>double');
+% Total number of bits in fData
+numBitsfData = fread(fid, 1, 'ubit32=>double');
 bitsRead = bitsRead + 32;
 
-% Counts histogram
-dataCounts = fread(fid, lenCounts, 'ubit18=>double');
-bitsRead = bitsRead + (lenCounts * 18);
+% fCounts histogram
+fCounts = fread(fid, numBins, 'ubit18=>double');
+bitsRead = bitsRead + (18 * numBins);
 
-% Data
-enc_data = fread(fid, numBitsData, 'ubit1');
-bitsRead = bitsRead + numBitsData;
+% fData
+enc_fdata = fread(fid, numBitsfData, 'ubit1');
+bitsRead = bitsRead + numBitsfData;
 
-% Total number of bits in mvs
-numBitsMV = fread(fid, 1, 'ubit16=>double');
-bitsRead = bitsRead + 16;
+%========= RESIDUALS =========
 
-% MV Counts histogram
-mvCounts = fread(fid, 33, 'ubit12=>double');
-bitsRead = bitsRead + (33 * 12);
+% rMax
+rMax = fread(fid, 1, 'ubit10=>double');
+bitsRead = bitsRead + 10;
 
-% MVs
-enc_mvs = fread(fid, numBitsMV, 'ubit1');
-bitsRead = bitsRead + numBitsMV;
+% Total number of bits in rData
+numBitsrData = fread(fid, 1, 'ubit32=>double');
+bitsRead = bitsRead + 32;
+
+% rData
+enc_rdata = fread(fid, numBitsrData, 'ubit1');
+bitsRead = bitsRead + numBitsrData; 
+
+%========= MOTION VECTORS =========
+
+% Total number of bits in mvData
+numBitsmvData = fread(fid, 1, 'ubit18=>double');
+bitsRead = bitsRead + 18;
+
+% mvData
+enc_mvdata = fread(fid, numBitsmvData, 'ubit1');
+bitsRead = bitsRead + numBitsmvData; 
 
 fclose(fid);
 
 bytesRead = byteOffset + ceil(bitsRead/8);
 
-% Decode Data and mvs
-data = arithdeco(enc_data, dataCounts, prod(dataDims));
-mvs = arithdeco(enc_mvs, mvCounts, prod(mvDims));
+fSize = dataDims(1)*dataDims(2);
+rSize = (fSize*(dataDims(3)-1));
+mvSize = prod(mvDims);
 
-clearvars -except minmax data mvs bytesRead;
+% Decode Data and mvs
+f1 = parfeval(@arithdeco, 1, enc_fdata, fCounts, fSize);
+f2 = parfeval(@arithdeco, 1, enc_rdata, rCounts, rSize);
+f3 = parfeval(@arithdeco, 1, enc_mvdata, mvCounts, mvSize);
+
+iframe = fetchOutputs(f1);
+residuals = fetchOutputs(f2);
+mvs = fetchOutputs(f3);
+
+clearvars -except fMax iframe rMax residuals mvs bytesRead;
 
 end

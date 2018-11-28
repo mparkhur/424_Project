@@ -1,5 +1,9 @@
 function pred = motionPrediction(prev,mv)
 
+% Half Pixel Stuff
+prev = imresize(prev, 2);
+%====
+
 mvx = mv(:,:,1);
 mvy = mv(:,:,2);
 
@@ -25,5 +29,7 @@ for i = 1:x_length
        
    end
 end
+
+pred = imresize(pred, 0.5);
 
 end
