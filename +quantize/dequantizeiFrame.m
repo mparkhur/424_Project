@@ -7,7 +7,7 @@ if (mod(numBins,2)==0)
 end
 
 stepSizeCa = ceil((maxi*2)/numBins);
-stepSizeDetail = stepSizeCa * 4;
+stepSizeDetail = stepSizeCa * 2;
 
 qdata = qdata - ceil(numBins/2);
 
