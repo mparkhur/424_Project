@@ -8,7 +8,7 @@ absd = abs(data);
 maxi = ceil(max(max(absd)));
 
 stepSizeCa = ceil((maxi*2)/numBins);
-stepSizeDetail = stepSizeCa * 4;
+stepSizeDetail = stepSizeCa * 2;
 
 % Detail
 

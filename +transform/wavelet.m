@@ -1,15 +1,16 @@
 function c = wavelet(data, level)
 
- % Level 1
- ls = liftwave('bior4.4');
- c = lwt2(double(data),ls);
+ w = 'bior4.4';
+ opt = 'gbl'; % Global threshold
+ thr = 10;    % Threshold
+ sorh = 'h';  % Hard thresholding
+ keepapp = 1; % Approximation coefficients cannot be thresholded
+
+ ls = liftwave(w);
+ c = lwt2(double(data),ls,level);
  
- % Level 2
- if (level == 2)
-    ca = c(1:2:end,1:2:end);
-    ca = lwt2(ca,ls);
-    c(1:2:end,1:2:end) = ca;
- end
+ % Threshold Coefficients
+ [c,~,~,~,~] = wdencmp(opt,c,w,level,thr,sorh,keepapp);
  
 %     figure;
 %     img = c;

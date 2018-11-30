@@ -16,11 +16,15 @@ mvHeight = height/blockSize(1);
 mvWidth = width/blockSize(2);
 mvSize = [ mvHeight mvWidth 2 packetSize(3)-1 ];
 
-waveletLevel = 1;
+waveletLevel = 3;
 
 %calculate the total number of packets
 file = dir(infile);
 totalBytes = file.bytes;
+
+% Overwrite .y file
+fid = fopen(outfile, 'w');
+fclose(fid);
 
 k = 1;
 %START

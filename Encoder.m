@@ -11,7 +11,7 @@ else
 end
 blockSize = [8 8];
 
-waveletLevel = 1;
+waveletLevel = 3;
 
 % Various Dimension Calculations
 height = packetSize(1);
@@ -32,7 +32,7 @@ headerWritten = false;
 
 gcp;
 
-for i = 1:num_packets
+for i = 1:5%num_packets
 
     % Read One Frame Packet
     packet = readFrameBlock(infile, packetSize, i);
