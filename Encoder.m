@@ -32,7 +32,7 @@ headerWritten = false;
 
 gcp;
 
-for i = 1:5%num_packets
+for i = 1:num_packets
 
     % Read One Frame Packet
     packet = readFrameBlock(infile, packetSize, i);
