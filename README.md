@@ -37,5 +37,9 @@ This function is the inverse of the above Encoder(...) function. This function w
   A string value indicating the name of the output video file. This will overwrite if outfile is 
   found.
 
-## Required Tools
-The only additional MATLAB toolbox needed to run this codec is the Wavelet Toolbox. More information can be found here: https://www.mathworks.com/products/wavelet.html 
+## Additional Required Tools
+The only additional MATLAB toolboxes needed to run this codec are the Communication Toolbox and the Wavelet Toolbox. More information can be found at these links:
+
+https://www.mathworks.com/products/communications.html
+
+https://www.mathworks.com/products/wavelet.html 
